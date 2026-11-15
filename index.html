@@ -3,42 +3,248 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Tor Snowflake — Help Fight Censorship Around the World</title>
+  <title>Snowflake Proxy — Help Fight Censorship</title>
   <style>
-    html,body{height:100%;margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:#f7f7f8;color:#111;display:flex;align-items:center;justify-content:center;padding:24px;}
-    .container{width:100%;max-width:680px;background:#fff;border:1px solid #e6e7ea;border-radius:10px;box-shadow:0 8px 24px rgba(16,24,40,0.06);padding:20px;box-sizing:border-box;}
-    .header{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
-    h1{font-size:18px;margin:0;color:#0f172a}
-    p.lead{margin:0;color:#334155;font-size:14px}
-    .iframe-wrap{width:100%;max-width:420px;background:#000;border-radius:8px;overflow:hidden;margin:16px 0;}
-    .responsive-iframe{position:relative;width:100%;padding-top:75%;overflow:hidden}
-    .responsive-iframe iframe{position:absolute;top:0;left:0;width:100%;height:100%;border:0}
-    .caption{display:flex;flex-direction:column;gap:8px;color:#475569;font-size:13px}
-    .small{color:#64748b;font-size:13px}
-    .link{color:#2563eb;text-decoration:none;font-size:13px}
-    @media(min-width:640px){ .header{flex-direction:row;align-items:center;justify-content:space-between} h1{font-size:20px} }
+    :root {
+      --bg: #0b1120;
+      --bg-glow-1: rgba(59, 130, 246, 0.18);
+      --bg-glow-2: rgba(139, 92, 246, 0.14);
+      --card: rgba(255, 255, 255, 0.04);
+      --card-border: rgba(255, 255, 255, 0.10);
+      --text: #e2e8f0;
+      --text-dim: #94a3b8;
+      --accent: #7dd3fc;
+      --link: #93c5fd;
+    }
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg: #f4f7fb;
+        --bg-glow-1: rgba(59, 130, 246, 0.12);
+        --bg-glow-2: rgba(139, 92, 246, 0.10);
+        --card: rgba(255, 255, 255, 0.80);
+        --card-border: rgba(15, 23, 42, 0.08);
+        --text: #0f172a;
+        --text-dim: #475569;
+        --accent: #0284c7;
+        --link: #2563eb;
+      }
+    }
+
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: var(--text);
+      background: var(--bg);
+    }
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 32px 20px;
+      position: relative;
+      overflow-x: hidden;
+    }
+    /* Soft ambient glows behind the card */
+    body::before, body::after {
+      content: "";
+      position: fixed;
+      width: 480px;
+      height: 480px;
+      border-radius: 50%;
+      filter: blur(120px);
+      z-index: 0;
+      pointer-events: none;
+    }
+    body::before { top: -160px; left: -120px; background: var(--bg-glow-1); }
+    body::after  { bottom: -160px; right: -120px; background: var(--bg-glow-2); }
+
+    .container {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 640px;
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      box-shadow: 0 24px 60px rgba(2, 6, 23, 0.25);
+      padding: 36px 36px 28px;
+      animation: rise 0.6s cubic-bezier(0.21, 1, 0.3, 1) both;
+    }
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .container, .flake { animation: none !important; }
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--accent);
+      background: color-mix(in srgb, var(--accent) 12%, transparent);
+      border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+      border-radius: 999px;
+      padding: 6px 14px;
+      margin-bottom: 18px;
+    }
+    .badge .dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 60%, transparent);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 55%, transparent); }
+      70%  { box-shadow: 0 0 0 8px transparent; }
+      100% { box-shadow: 0 0 0 0 transparent; }
+    }
+
+    h1 {
+      margin: 0 0 10px;
+      font-size: clamp(24px, 5vw, 32px);
+      line-height: 1.2;
+      letter-spacing: -0.02em;
+    }
+    .lead {
+      margin: 0;
+      color: var(--text-dim);
+      font-size: 15px;
+      line-height: 1.6;
+      max-width: 52ch;
+    }
+
+    .iframe-wrap {
+      position: relative;
+      width: 100%;
+      margin: 28px 0 20px;
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid var(--card-border);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+      background: #000;
+    }
+    .responsive-iframe {
+      position: relative;
+      width: 100%;
+      padding-top: 68%;
+    }
+    .responsive-iframe iframe {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      border: 0;
+    }
+
+    .footer {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .footer p {
+      margin: 0;
+      font-size: 13px;
+      color: var(--text-dim);
+      max-width: 38ch;
+    }
+    .cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--link);
+      font-size: 14px;
+      font-weight: 600;
+      text-decoration: none;
+      padding: 10px 18px;
+      border-radius: 12px;
+      border: 1px solid color-mix(in srgb, var(--link) 35%, transparent);
+      transition: background 0.2s ease, transform 0.2s ease;
+    }
+    .cta:hover {
+      background: color-mix(in srgb, var(--link) 12%, transparent);
+      transform: translateY(-1px);
+    }
+
+    /* Decorative drifting snowflakes */
+    .flakes {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+    .flake {
+      position: absolute;
+      top: -4vh;
+      color: var(--accent);
+      opacity: 0.35;
+      font-size: 14px;
+      animation: fall linear infinite;
+    }
+    .flake:nth-child(1) { left: 8%;  animation-duration: 11s; animation-delay: 0s; }
+    .flake:nth-child(2) { left: 22%; animation-duration: 15s; animation-delay: 3s; }
+    .flake:nth-child(3) { left: 45%; animation-duration: 13s; animation-delay: 6s; }
+    .flake:nth-child(4) { left: 68%; animation-duration: 17s; animation-delay: 2s; }
+    .flake:nth-child(5) { left: 86%; animation-duration: 12s; animation-delay: 8s; }
+    @keyframes fall {
+      to { transform: translateY(110vh) rotate(240deg); }
+    }
+
+    @media (max-width: 520px) {
+      .container { padding: 26px 22px 22px; }
+      .footer { flex-direction: column; align-items: flex-start; }
+    }
   </style>
 </head>
 <body>
-  <div class="container" role="main" aria-label="Snowflake helper">
-    <div class="header">
-      <h1>A Simple Website to Fight Internet Censorship</h1>
-      <p class="lead">Keep this browser tab open to help people bypass censored content in their country!</p>
-    </div>
+  <div class="flakes" aria-hidden="true">
+    <span class="flake">❄</span>
+    <span class="flake">❄</span>
+    <span class="flake">❅</span>
+    <span class="flake">❄</span>
+    <span class="flake">❆</span>
+  </div>
 
-    <div class="iframe-wrap" aria-hidden="false">
+  <main class="container" aria-label="Snowflake proxy helper">
+    <span class="badge"><span class="dot"></span> Tor Snowflake Proxy</span>
+
+    <h1>Fight censorship just<br />by keeping this tab open</h1>
+    <p class="lead">
+      Your browser quietly lends a slice of bandwidth to someone living under
+      internet censorship, helping them reach the open web. Nothing to install,
+      nothing to configure — leave this tab open and you're already helping.
+    </p>
+
+    <div class="iframe-wrap">
       <div class="responsive-iframe">
-        <iframe src="https://snowflake.torproject.org/embed.html"
-                width="320" height="240" frameborder="0" scrolling="no"
-                title="Snowflake embed"></iframe>
+        <iframe
+          src="https://snowflake.torproject.org/embed.html"
+          title="Snowflake embed — Tor Project"
+          allowfullscreen></iframe>
       </div>
     </div>
 
-    <div class="caption">
-      <div class="small">Snowflake embed (responsive). Leaving this tab open helps provide access to censored content.</div>
-      <a class="link" href="https://snowflake.torproject.org/" target="_blank" rel="noopener noreferrer">Open project</a>
+    <div class="footer">
+      <p>Leaving this page open lets your connection serve as a bridge
+         for people accessing censored content worldwide.</p>
+      <a class="cta" href="https://snowflake.torproject.org/"
+         target="_blank" rel="noopener noreferrer">
+        Learn how it works <span aria-hidden="true">→</span>
+      </a>
     </div>
-  </div>
+  </main>
 </body>
 </html>
-
